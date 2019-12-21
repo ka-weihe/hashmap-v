@@ -33,8 +33,7 @@ fn hsh(str byteptr) int {
 
 fn (h mut Hashmap) set(key string, value int) {
 	if (h.elements + 1) << 1 == h.size {
-		h.grow(key, value)
-		return
+		h.grow()
 	}
 	hash := key.hash()
 	mut index := hash & (h.size - 1)
@@ -50,17 +49,7 @@ fn (h mut Hashmap) set(key string, value int) {
 	h.elements++
 }
 
-fn (h mut Hashmap) rehash(key string, value int) {
-	hash := key.hash()
-	mut index := hash & (h.size - 1)
-	for h.keys[index].str != 0 {
-		index = (index + 1) & (h.size - 1)
-	}
-	h.keys[index] = key
-	h.values[index] = value
-}
-
-fn (h mut Hashmap) grow(key string, value int) {
+fn (h mut Hashmap) grow() {
 	old_size := h.size
 	h.size = h.size << 1
 	mut new_keys := &string(malloc(sizeof(string) * h.size))
@@ -81,8 +70,6 @@ fn (h mut Hashmap) grow(key string, value int) {
 	}
 	h.keys = new_keys
 	h.values = new_values
-	h.elements++
-	h.rehash(key, value)
 }
 
 fn (h Hashmap) get(key string) int {
@@ -96,7 +83,6 @@ fn (h Hashmap) get(key string) int {
 	}
 	return h.values[index]
 }
-
 
 fn main() {
 	mut m := new_hmap()
@@ -114,7 +100,7 @@ fn main() {
 	// println(m.get("2"))
 
 	for i in 1..100000 {
-		println(i)
+		// println(i)
 		assert m.get(i.str()) == i
 	}
 }
