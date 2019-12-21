@@ -22,15 +22,6 @@ fn new_hmap() Hashmap {
 	}
 }
 
-
-fn hsh(str byteptr) int {
-	mut h := 0
-	for i := 0; str[i] != 0; i++ {
-		h = h * 31 + int(str[i])
-	} 
-	return h
-}
-
 fn (h mut Hashmap) set(key string, value int) {
 	if (h.elements + 1) << 1 == h.size {
 		h.grow()
