@@ -72,7 +72,7 @@ fn (h mut Hashmap) rehash() {
 			mut current_value := h.values[i]
 			hash := current_key.hash()
 			mut index := hash & (h.size - 1)
-			for h.keys[index].str != 0 {
+			for new_keys[index].str != 0 {
 				if new_psls[index] < current_psl {
 					tmp_key := new_keys[index]
 					tmp_psl := new_psls[index]
