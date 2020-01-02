@@ -1,13 +1,24 @@
 const (
-	initial_size = 2 << 25
+	initial_size = 2 << 3
 	initial_cap = initial_size - 1
 	load_factor = 0.5
-	probe_bitmask = 0xFFFFFFFFFFFFFFF
+	probe_offset = u16(1 << 8)
 )
+
+const(
+	fnv64_prime        = 1099511628211
+	fnv64_offset_basis = 14695981039346656037
+)
+
+const(
+    fnv32_offset_basis = u32(2166136261)
+    fnv32_prime        = u32(16777619)
+)
+
 
 struct Hashmap {
 mut:
-	probe_hash &u64
+	info &u16
 	key_values &KeyValue
 	cap        int
 	elements   int
@@ -19,100 +30,128 @@ mut:
 	value int
 }
 
+[inline]
+fn fnv1a64(data string) u64 {
+    mut hash := fnv64_offset_basis
+    for i := 0; i < data.len; i++ {
+        hash = (hash ^ u64(data[i])) * fnv64_prime
+    }
+    return hash
+}
+
 fn new_hmap() Hashmap {
 	return Hashmap {
-		probe_hash: &u64(malloc(sizeof(u64) * initial_size))
+		info: &u16(malloc(sizeof(u16) * initial_size))
 		key_values: &KeyValue(malloc(sizeof(KeyValue) * initial_size))
 		cap: initial_cap
 		elements: 0
 	}
 }
 
-fn (h mut Hashmap) set(key string, value int) {
+fn (h mut Hashmap) set(k string, v int) {
 	if h.elements << 1 == h.cap - 1 { // load_factor 0.5
 		h.rehash()
 	}
-	hash := key.hash()
-	mut current_psl := byte(0)
-	mut current_key_value := KeyValue{key, value}
-	mut current_probe_hash := (u64(hash) & probe_bitmask) | (u64(0) << 60)
-	mut index := current_probe_hash & h.cap
-	for h.key_values[index].key.str != 0 {
-		if h.key_values[index].key == key {
+	mut key := k
+	mut value := v
+	hash := fnv1a64(key)
+	mut info := u16((hash >> 56) | probe_offset)
+	mut index := hash & h.cap
+
+	for info < h.info[index] {
+		index = (index + 1) & h.cap
+		info += probe_offset
+	}
+
+	for info == h.info[index] {
+		if key == h.key_values[index].key {
 			h.key_values[index].value = value
 			return
 		}
-		if (h.probe_hash[index] >> 60) < current_psl {
-			tmp_probe_hash := h.probe_hash[index]
-			tmp_key_value := h.key_values[index]
-			h.probe_hash[index] = (current_probe_hash & probe_bitmask) | (u64(current_psl) << 60)
-			h.key_values[index] = current_key_value
-			current_psl = byte(tmp_probe_hash >> 60)
-			current_probe_hash = tmp_probe_hash
-			current_key_value = tmp_key_value
-		}
-		current_psl++
 		index = (index + 1) & h.cap
+		info += probe_offset
 	}
-	h.probe_hash[index] = (current_probe_hash & probe_bitmask) | (u64(current_psl) << 60)
-	h.key_values[index] = current_key_value
+
+	for (h.info[index] & 0xFF00) != 0 {
+		if info > h.info[index] {
+			tmp_kv := h.key_values[index] 
+			tmp_info := h.info[index]
+			h.key_values[index] = KeyValue{key, value}
+			h.info[index] = info
+			key = tmp_kv.key
+			value = tmp_kv.value
+			info = tmp_info
+
+		}
+		index = (index + 1) & h.cap
+		info += probe_offset
+	}
+
+	h.info[index] = info
+	h.key_values[index] = KeyValue{key, value}
 	h.elements++
 }
 
-fn (h Hashmap) rehash() {
-	// old_cap := h.cap
-	// h.cap = ((h.cap + 1) << 1) - 1
-	// mut new_keys := &string(malloc(sizeof(string) * (h.cap + 1)))
-	// mut new_values := &int(malloc(sizeof(int) * (h.cap + 1)))
-	// mut new_probe_hash := &u64(malloc(sizeof(u64) * (h.cap + 1)))
-	
-	// for i := 0; i <= old_cap; i++ {
-	// 	if h.keys[i].str != 0 {
-	// 		mut current_psl := byte(0)
-	// 		mut current_key := h.keys[i]
-	// 		mut current_value := h.values[i]
-	// 		mut current_probe_hash := h.probe_hash[i]
-	// 		mut index := current_key.hash() & h.cap
-	// 		for new_keys[index].str != 0 {
-	// 			if (new_probe_hash[index] >> 60) < current_psl {
-	// 				tmp_key := new_keys[index]
-	// 				tmp_value := new_values[index]
-	// 				tmp_probe_hash := new_probe_hash[index]
-	// 				tmp_psl := byte(tmp_probe_hash >> 60)
-	// 				new_keys[index] = current_key
-	// 				new_values[index] = current_value
-	// 				new_probe_hash[index] = (current_probe_hash & probe_bitmask) | (u64(current_psl) << 60)
-	// 				current_key = tmp_key
-	// 				current_psl = tmp_psl
-	// 				current_value = tmp_value
-	// 				current_probe_hash = tmp_probe_hash
-	// 			}
-	// 			current_psl++
-	// 			index = (index + 1) & h.cap
-	// 		}
-	// 		new_keys[index] = current_key
-	// 		new_values[index] = current_value
-	// 		new_probe_hash[index] = (current_probe_hash & probe_bitmask) | (u64(current_psl) << 60)
-	// 	}
-	// }
-	// // free(h.keys)
-	// // free(h.values)
-	// // free(h.probe_count)
-	// h.keys = new_keys
-	// h.values = new_values
-	// h.probe_hash = new_probe_hash
+fn (h mut Hashmap) rehash() {
+	old_cap := h.cap
+	h.cap = ((h.cap + 1) << 1) - 1
+	mut new_info := &u16(malloc(sizeof(u16) * (h.cap + 1)))
+	mut new_key_values := &KeyValue(malloc(sizeof(KeyValue) * (h.cap + 1)))
+
+	for i := 0; i <= old_cap; i++ {
+		if h.key_values[i].key.str != 0 {
+				mut key := h.key_values[i].key
+				mut value := h.key_values[i].value
+				hash := fnv1a64(key)
+				mut info := u16((hash >> 56) | probe_offset)
+				mut index := hash & h.cap
+
+				for info < new_info[index] {
+					index = (index + 1) & h.cap
+					info += probe_offset
+				}
+
+				for (new_info[index] & 0xFF00) != 0 {
+					if info > new_info[index] {
+						tmp_kv := new_key_values[index] 
+						tmp_info := new_info[index]
+						new_key_values[index] = KeyValue{key, value}
+						new_info[index] = info
+						key = tmp_kv.key
+						value = tmp_kv.value
+						info = tmp_info
+
+					}
+					index = (index + 1) & h.cap
+					info += probe_offset
+				}
+
+				new_info[index] = info
+				new_key_values[index] = KeyValue{key, value}
+		}
+	}
+	h.info = new_info
+	h.key_values = new_key_values
 }
 
 fn (h Hashmap) get(key string) int {
-	hash := key.hash()
+	hash := fnv1a64(key)
 	mut index := hash & h.cap
-	for key != h.key_values[index].key {
-		if h.key_values[index].key.str == 0 {
-			return 0
+	mut info := u16((hash >> 56) | probe_offset)
+
+	for info < h.info[index] {
+		index = (index + 1) & h.cap
+		info += probe_offset
+	}
+
+	for info == h.info[index] {
+		if key == h.key_values[index].key {
+			return h.key_values[index].value
 		}
 		index = (index + 1) & h.cap
+		info += probe_offset
 	}
-	return h.key_values[index].value
+	return 0
 }
 
 fn test() {
@@ -134,6 +173,7 @@ fn main() {
 	test()
 	// mut m := new_hmap()
 	// m.set("2", 2)
+	// println(m.get("2"))
 	// m.set("2", 1)
 
 
@@ -144,9 +184,6 @@ fn main() {
 	// m.clear()
 	// println(m.get("4"))
 	// println(m.get("2"))
-	// somestr := "hej"
-	// hash := somestr.hash()
-
 	// probe_count := 1
 	// probe_hash := (u64(hash) & 0xFFFFFFFFFFFFFFF) | (u64(1) << 60)
 	// probe_count_a := probe_hash >> 60
