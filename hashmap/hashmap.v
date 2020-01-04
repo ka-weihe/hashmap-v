@@ -63,12 +63,6 @@ pub fn (h mut Hashmap) set(key string, value int) {
 	for info < h.info[index] {
 		index = (index + 1) & h.cap
 		info += probe_offset
-
-		if (info & 0xFF00) == 0 {
-			h.rehash()
-			h.set(key, value)
-			return
-		}
 	}
 	for info == h.info[index] {
 		if key == h.key_values[index].key {
