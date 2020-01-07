@@ -64,6 +64,7 @@ pub fn (h mut Hashmap) set(key string, value int) {
 		index = (index + 1) & h.cap
 		info += probe_offset
 	}
+
 	for info == h.info[index] {
 		if key == h.key_values[index].key {
 			h.key_values[index].value = value
@@ -71,12 +72,6 @@ pub fn (h mut Hashmap) set(key string, value int) {
 		}
 		index = (index + 1) & h.cap
 		info += probe_offset
-
-		if (info & 0xFF00) == 0 {
-			h.rehash()
-			h.set(key, value)
-			return
-		}
 	}
 
 	mut current_key := key
@@ -93,12 +88,12 @@ pub fn (h mut Hashmap) set(key string, value int) {
 		}
 		index = (index + 1) & h.cap
 		info += probe_offset
+	}
 
-		if (info & 0xFF00) == 0 {
-			h.rehash()
-			h.set(current_key, current_value)
-			return
-		}
+	if (info & 0xFF00) == 0xFF00 {
+		h.rehash()
+		h.set(current_key, current_value)
+		return
 	}
 
 	h.info[index] = info
