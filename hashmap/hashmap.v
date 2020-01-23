@@ -1,7 +1,7 @@
 module hashmap
 
 const (
-	initial_size = 2 << 2
+	initial_size = 2 << 4
 	initial_cap = initial_size - 1
 	load_factor = 0.5
 	probe_offset = u16(256)
@@ -23,7 +23,7 @@ mut:
 	info &u16
 	key_values &KeyValue
 	cap        int
-	elements   int
+	size   int
 }
 
 struct KeyValue {
@@ -46,13 +46,13 @@ pub fn new_hmap() Hashmap {
 		info: &u16(calloc(sizeof(u16) * initial_size))
 		key_values: &KeyValue(calloc(sizeof(KeyValue) * initial_size))
 		cap: initial_cap
-		elements: 0
+		size: 0
 	}
 }
 
 pub fn (h mut Hashmap) set(key string, value int) {
-	// Load factor of 0.5 (should be adjustable)
-	if (h.elements << 1) == (h.cap - 1) { 
+	// Load factor of 0.5 (should be adjustable instead)
+	if (h.size << 1) == (h.cap - 1) { 
 		h.rehash()
 	}
 
@@ -104,7 +104,7 @@ pub fn (h mut Hashmap) set(key string, value int) {
 
 	h.info[index] = info
 	h.key_values[index] = KeyValue{current_key, current_value}
-	h.elements++
+	h.size++
 }
 
 fn (h mut Hashmap) rehash() {
@@ -193,7 +193,7 @@ pub fn (h mut Hashmap) delete(key string) {
 				current_info = h.info[index]
 			}
 			h.info[old_index] = 0
-			h.elements--
+			h.size--
 			return
 		}
 		index = (index + 1) & h.cap
@@ -242,4 +242,16 @@ pub fn (h Hashmap) exists(key string) bool {
 	return false
 }
 
+pub fn (h Hashmap) keys() []string {
+	size := h.size
+	mut keys := [''].repeat(size)
+	mut j := 0
+	for i in 0..(h.cap + 1) {
+		if h.info[i] != 0 {
+			keys[j] = h.key_values[i].key
+			j++
+		}
+	}
+	return keys	
+}
 
