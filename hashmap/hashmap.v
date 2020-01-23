@@ -51,7 +51,9 @@ pub fn new_hmap() Hashmap {
 }
 
 pub fn (h mut Hashmap) set(key string, value int) {
-	// Load factor of 0.5 (should be adjustable instead)
+	// The load factor is 0.5.
+	// It should be adjustable and with a higher 
+	// default settings to lower memory usage.
 	if (h.size << 1) == (h.cap - 1) { 
 		h.rehash()
 	}
@@ -180,6 +182,7 @@ pub fn (h mut Hashmap) delete(key string) {
 		info += probe_offset
 	}
 
+	// Perform backwards shifting
 	for info == h.info[index] {
 		if key == h.key_values[index].key {
 			mut old_index := index
