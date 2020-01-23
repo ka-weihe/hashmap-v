@@ -113,7 +113,7 @@ fn (h mut Hashmap) rehash() {
 	mut new_key_values :=  &KeyValue(calloc(sizeof(KeyValue) * (h.cap + 1)))
 	mut new_info := &u16(calloc(sizeof(u16) * (h.cap + 1)))
 	for i in 0..(old_cap + 1) {
-		if !isnil(h.key_values[i].key.str) {
+		if h.info[i] != 0 {
 			key := h.key_values[i].key
 			value := h.key_values[i].value
 			hash := fnv1a64(key)
@@ -220,6 +220,26 @@ pub fn (h Hashmap) get(key string) int {
 		info += probe_offset
 	}
 	return 0
+}
+
+pub fn (h Hashmap) exists(key string) bool {
+	hash := fnv1a64(key)
+	mut index := hash & h.cap
+	mut info := u16((hash >> 56) | probe_offset)
+
+	for info < h.info[index] {
+		index = (index + 1) & h.cap
+		info += probe_offset
+	}
+
+	for info == h.info[index] {
+		if key == h.key_values[index].key {
+			return true
+		}
+		index = (index + 1) & h.cap
+		info += probe_offset
+	}
+	return false
 }
 
 
