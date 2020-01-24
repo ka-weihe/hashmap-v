@@ -5,24 +5,18 @@ const (
 	initial_cap = initial_size - 1
 	load_factor = 0.5
 	probe_offset = u16(256)
-)
-
-const(
 	fnv64_prime        = 1099511628211
 	fnv64_offset_basis = 14695981039346656037
+	fnv32_offset_basis = u32(2166136261)
+   fnv32_prime        = u32(16777619)
 )
 
-const(
-    fnv32_offset_basis = u32(2166136261)
-    fnv32_prime        = u32(16777619)
-)
-
-
-struct Hashmap {
+pub struct Hashmap {
 mut:
 	info &u16
 	key_values &KeyValue
 	cap        int
+pub mut:
 	size   int
 }
 
@@ -52,12 +46,13 @@ pub fn new_hmap() Hashmap {
 
 pub fn (h mut Hashmap) set(key string, value int) {
 	// The load factor is 0.5.
-	// It should be adjustable and with a higher 
-	// default settings to lower memory usage.
+	// It will be adjustable  in the future and with 
+	// a higher default settings to lower memory usage.
 	if (h.size << 1) == (h.cap - 1) { 
 		h.rehash()
 	}
 
+	// Hash-function will be swapped for wyhash
 	hash := fnv1a64(key)
 	mut info := u16((hash >> 56) | probe_offset)
 	mut index := hash & h.cap
