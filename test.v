@@ -325,8 +325,6 @@ fn general_test1() {
 	assert m.size == 2
 	keys := m.keys()
 	assert keys.len == 2
-	assert keys[0] == 'hello'
-	assert keys[1] == 'hi'
 	m.delete('hi')
 	assert m.size == 1
 	m.delete('aloha')
