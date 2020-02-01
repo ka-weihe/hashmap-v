@@ -37,12 +37,15 @@ mut:
 }
 
 pub fn new_hmap() Hashmap {
+	info_bytes := sizeof(u32) * initial_size
+	key_values_bytes := sizeof(KeyValue) * initial_size
+	memory := calloc(key_values_bytes + info_bytes)
 	return Hashmap{
 		cap: initial_cap
 		shift: log_size
 		window: window_size
-		info: &u32(calloc(sizeof(u32) * initial_size))
-		key_values: &KeyValue(calloc(sizeof(KeyValue) * initial_size))
+		key_values: &KeyValue(memory)
+		info: &u32(memory + key_values_bytes)
 		load_factor: default_load_factor
 		size: 0
 	}
@@ -108,8 +111,11 @@ fn (h mut Hashmap) rehash() {
 	}
 	// double the size of the hashmap
 	h.cap = ((h.cap + 1) << 1) - 1
-	mut new_key_values := &KeyValue(calloc(sizeof(KeyValue) * (h.cap + 1)))
-	mut new_info := &u32(calloc(sizeof(u32) * (h.cap + 1)))
+	info_bytes := sizeof(u32) * (h.cap + 1)
+	key_values_bytes := sizeof(KeyValue) * (h.cap + 1)
+	memory := calloc(info_bytes + key_values_bytes)
+	mut new_key_values := &KeyValue(memory)
+	mut new_info := &u32(memory + key_values_bytes)
 	for i in 0 .. (old_cap + 1) {
 		if h.info[i] != 0 {
 			mut kv := h.key_values[i]
@@ -160,7 +166,6 @@ fn (h mut Hashmap) rehash() {
 		h.window = window_size
 	}
 	free(h.key_values)
-	free(h.info)
 	h.key_values = new_key_values
 	h.info = new_info
 }
