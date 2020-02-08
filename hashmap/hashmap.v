@@ -19,11 +19,11 @@ const (
 	// Initial range cap
 	init_range_cap = init_capicity - 1
 	// Bitmask to select all the hashbits
-	hash_mask = (0x00FFFFFF as u32)
+	hash_mask = u32(0x00FFFFFF)
 	// Used for incrementing the probe-count
-	probe_inc = (0x01000000 as u32)
+	probe_inc = u32(0x01000000)
 	// Bitmask for maximum probe count
-	max_probe = (0xFF000000 as u32)
+	max_probe = u32(0xFF000000)
 )
 
 pub struct Hashmap {
@@ -61,8 +61,8 @@ pub fn new_hmap() Hashmap {
 		range_cap: init_range_cap
 		shift: log_init_capicity
 		window: cached_hashbits
-		key_values: memory as &KeyValue
-		probe_hash: (memory + key_value_bytes) as &u32
+		key_values: &KeyValue(memory)
+		probe_hash: &u32(memory + key_value_bytes)
 		load_factor: init_load_factor
 		size: 0
 	}
@@ -70,11 +70,11 @@ pub fn new_hmap() Hashmap {
 
 pub fn (h mut Hashmap) set(key string, value int) {
 	// load_factor can be adjusted.
-	if ((h.size as f32) / (h.range_cap as f32)) > h.load_factor {
+	if (f32(h.size) / f32(h.range_cap)) > h.load_factor {
 		h.expand()
 	}
-	hash := wyhash.wyhash_c(key.str, key.len as u64, 0)
-	mut probe_hash := (((hash>>h.shift) & hash_mask) | probe_inc) as u32
+	hash := wyhash.wyhash_c(key.str, u64(key.len), 0)
+	mut probe_hash := u32(((hash>>h.shift) & hash_mask) | probe_inc)
 	mut index := hash & h.range_cap
 	// While probe count is less
 	for probe_hash < h.probe_hash[index] {
@@ -139,13 +139,13 @@ fn (h mut Hashmap) rehash(old_range_cap u32) {
 	probe_hash_bytes := sizeof(u32) * (h.range_cap + 1)
 	key_value_bytes := sizeof(KeyValue) * (h.range_cap + 1)
 	memory := calloc(probe_hash_bytes + key_value_bytes)
-	mut new_key_values := memory as &KeyValue
-	mut new_probe_hash := (memory + key_value_bytes) as &u32
+	mut new_key_values := &KeyValue(memory)
+	mut new_probe_hash := &u32(memory + key_value_bytes)
 	for i in 0 .. (old_range_cap + 1) {
 		if h.probe_hash[i] != 0 {
 			mut kv := h.key_values[i]
 			hash := wyhash.wyhash_c(kv.key.str, u64(kv.key.len), 0)
-			mut probe_hash := (((hash>>h.shift) & hash_mask) | probe_inc) as u32
+			mut probe_hash := u32(((hash>>h.shift) & hash_mask) | probe_inc)
 			mut index := hash & h.range_cap
 			// While probe count is less
 			for probe_hash < new_probe_hash[index] {
@@ -189,13 +189,13 @@ fn (h mut Hashmap) cached_rehash(old_range_cap u32) {
 	probe_hash_bytes := sizeof(u32) * (h.range_cap + 1)
 	key_value_bytes := sizeof(KeyValue) * (h.range_cap + 1)
 	memory := calloc(probe_hash_bytes + key_value_bytes)
-	mut new_probe_hash := (memory + key_value_bytes) as &u32
-	mut new_key_values := memory as &KeyValue
+	mut new_probe_hash := &u32(memory + key_value_bytes)
+	mut new_key_values := &KeyValue(memory)
 	for i in 0 .. (old_range_cap + 1) {
 		if h.probe_hash[i] != 0 {
 			mut kv := h.key_values[i]
 			mut probe_hash := h.probe_hash[i]
-			original := (i - ((probe_hash>>hashbits) - 1)) & (h.range_cap>>1) as u64
+			original := u64(i - ((probe_hash>>hashbits) - 1)) & (h.range_cap>>1) 
 			hash := original | (probe_hash<<h.shift)
 			probe_hash = (probe_hash & hash_mask) | probe_inc
 			mut index := hash & h.range_cap
@@ -238,7 +238,7 @@ fn (h mut Hashmap) cached_rehash(old_range_cap u32) {
 }
 
 pub fn (h mut Hashmap) delete(key string) {
-	hash := wyhash.wyhash_c(key.str, key.len as u64, 0)
+	hash := wyhash.wyhash_c(key.str, u64(key.len), 0)
 	mut index := hash & h.range_cap
 	mut probe_hash := u32(((hash>>h.shift) & hash_mask) | probe_inc)
 	for probe_hash < h.probe_hash[index] {
@@ -268,9 +268,9 @@ pub fn (h mut Hashmap) delete(key string) {
 }
 
 pub fn (h Hashmap) get(key string) int {
-	hash := wyhash.wyhash_c(key.str, key.len as u64, 0)
+	hash := wyhash.wyhash_c(key.str, u64(key.len), 0)
 	mut index := hash & h.range_cap
-	mut probe_hash := (((hash>>h.shift) & hash_mask) | probe_inc) as u32
+	mut probe_hash := u32(((hash>>h.shift) & hash_mask) | probe_inc)
 	for probe_hash < h.probe_hash[index] {
 		index = (index + 1) & h.range_cap
 		probe_hash += probe_inc
@@ -286,9 +286,9 @@ pub fn (h Hashmap) get(key string) int {
 }
 
 pub fn (h Hashmap) exists(key string) bool {
-	hash := wyhash.wyhash_c(key.str, key.len as u64, 0)
+	hash := wyhash.wyhash_c(key.str, u64(key.len), 0)
 	mut index := hash & h.range_cap
-	mut probe_hash := (((hash>>h.shift) & hash_mask) | probe_inc) as u32
+	mut probe_hash := u32(((hash>>h.shift) & hash_mask) | probe_inc)
 	for probe_hash < h.probe_hash[index] {
 		index = (index + 1) & h.range_cap
 		probe_hash += probe_inc
