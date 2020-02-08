@@ -194,9 +194,10 @@ fn (h mut Hashmap) cached_rehash(old_range_cap u32) {
 	for i in 0 .. (old_range_cap + 1) {
 		if h.probe_hash[i] != 0 {
 			mut kv := h.key_values[i]
-			original := (i - ((h.probe_hash[i]>>hashbits) - 1)) & (h.range_cap>>1) as u64
-			hash := original | (h.probe_hash[i]<<h.shift)
-			mut probe_hash := (h.probe_hash[i] & hash_mask) | probe_inc
+			mut probe_hash := h.probe_hash[i]
+			original := (i - ((probe_hash>>hashbits) - 1)) & (h.range_cap>>1) as u64
+			hash := original | (probe_hash<<h.shift)
+			probe_hash = (probe_hash & hash_mask) | probe_inc
 			mut index := hash & h.range_cap
 			// While probe count is less
 			for probe_hash < new_probe_hash[index] {
