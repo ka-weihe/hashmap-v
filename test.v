@@ -1,18 +1,21 @@
 import hashmap
 import rand
+import time 
 
 // A lot of dublicate tests
 fn test1() {
+	rand.seed(time.now().unix)
 	mut m := hashmap.new_hmap()
-	for i in 1..1000000 {
+	for i in 1..100000 {
 		m.set(i.str(), i)
 	}
-	for i in 1..1000000 {
+	for i in 1..100000 {
 		m.set(i.str(), i + 1)
 	}
 
-	for i in 1..1000000 {
-		// println(i)
+	for i in 1..100000 {
+		// start_time := time.ticks()
+		// 
 		assert m.get(i.str()) == (i + 1)
 	}
 }
@@ -119,8 +122,17 @@ fn test6() {
 		assert b.get(arr[i]) == i
 	}
 
+	keys1 := b.keys()
+	for i in 0..1000 {
+		assert arr[i] in keys1
+	}
+
 	for i in 0..100000 {
 		b.delete(arr[i])
+	}
+
+	for i in 0..100000 {
+		assert b.get(arr[i]) == 0
 	}
 
 	assert b.size == 0
@@ -144,6 +156,7 @@ fn test7() {
 		}
 
 		for i in 0..10000 {
+			// println(c.size)
 			assert c.size == b.size
 			assert c[arr[i]] == b.get(arr[i])
 			c.delete(arr[i])
@@ -162,6 +175,10 @@ fn test7() {
 	
 	// assert c.keys().len == b.keys().len
 	assert c.size == b.size
+}
+
+fn test8() {
+	
 }
 
 fn rnd_test_get() {
@@ -237,6 +254,13 @@ fn test_vs_map1() {
 		arr << s
 	}
 
+	mut arr1 := b.keys()
+	arr1.sort()
+	mut arr2 := c.keys()
+	arr2.sort()
+	for i in 0..arr1.len - 1 {
+		assert arr2[i] == arr2[i]
+	}
 	assert b.keys().len == c.keys().len
 	assert b.size == c.size
 
@@ -296,7 +320,9 @@ fn test_vs_map3() {
 		for j in 0..4 {
 			buf << byte(rand.next(int(`z`) - int(`a`)) + `a`)
 		}
+		
 		s := string(buf)
+
 		b.set(s, i)
 		c[s] = i
 		arr << s
@@ -436,7 +462,11 @@ fn main() {
 	test_vs_map3()
 	// println(-1 & 1)
 	// test3()
-	// mut m := new_hmap()
+	// mut m := hashmap.new_hmap()
+	// m.set("hej", 1)
+	// m.delete("hej")
+	// a := m.keys()
+	// println(a.data[0])
 	// m.set("2", 2)
 	// println(m.get("2"))
 	// m.set("2", 1)
