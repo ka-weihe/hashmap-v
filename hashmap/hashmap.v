@@ -31,7 +31,7 @@ const (
 pub struct Hashmap {
 mut:
 	// Index of the highest index in the hashtable
-	cap       u32
+	cap             u32
 	// Number of cached hashbits left for rehasing
 	window          byte
 	// Used for right-shifting out used hashbits
