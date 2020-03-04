@@ -1,259 +1,151 @@
 import hashmap
+import btree
 import rand
-import time 
 
-// A lot of dublicate tests
-fn test1() {
-	rand.seed(time.now().unix)
-	mut m := hashmap.new_hmap()
-	for i in 1..100000 {
-		m.set(i.str(), i)
-	}
-	for i in 1..100000 {
-		m.set(i.str(), i + 1)
-	}
-
-	for i in 1..100000 {
-		// start_time := time.ticks()
-		// 
-		assert m.get(i.str()) == (i + 1)
-	}
-}
-
-fn test2() {
+fn generate_strings(len, amount int) []string {
 	mut arr := []string
-	mut b := hashmap.new_hmap()
-	for i in 0..80000 {
+	for _ in 0..amount {
 		mut buf := []byte
-		for j in 0..15 {
+		for _ in 0..len {
 			buf << byte(rand.next(int(`z`) - int(`a`)) + `a`)
 		}
-		s := string(buf)
-		b.set(s, i)
-		arr << s
+		arr << string(buf)
+	}
+	return arr
+}
+
+fn test_1() {
+	mut m := hashmap.new_hmap()
+	for i in 1..1000000 {
+		m.set(i.str(), i)
+	}
+	for i in 1..1000000 {
+		m.set(i.str(), i + 1)
+	}
+	for i in 1..1000000 {
+		assert m.get(i.str()) == (i + 1)
+	}
+	m.free()
+}
+
+fn test_2() {
+	arr := generate_strings(15, 80000)
+	mut b := hashmap.new_hmap()
+	for i in 0..80000 {
+		b.set(arr[i], i)
+		assert i == b.get(arr[i]) 
 	}
 	for i in 0..80000 {
 		assert i == b.get(arr[i]) 
 	}
 }
 
-fn test3() {
-	mut arr := []string
-	mut b := hashmap.new_hmap()
-	mut c := map[string]int
-	for i in 0..80000 {
-		mut buf := []byte
-		for j in 0..5 {
-			buf << byte(rand.next(int(`z`) - int(`a`)) + `a`)
+fn test_3() {
+	for x in 1..4 {
+		arr := generate_strings(x * 5, 80000)
+		mut b := hashmap.new_hmap()
+		mut c := btree.new_tree()
+		for i in 0..80000 {
+			b.set(arr[i], i)
+			c.set(arr[i], i)
+			assert c.get(arr[i]) == b.get(arr[i]) 
 		}
-		s := string(buf)
-		b.set(s, i)
-		c[s] = i
-		arr << s
-	}
-	for i in 0..80000 {
-		assert c[arr[i]] == b.get(arr[i]) 
-	}
+		for i in 0..80000 {
+			assert c.get(arr[i]) == b.get(arr[i]) 
+		}
+	}	
 }
 
-
-fn test4() {
-	mut arr := []string
-	mut b := hashmap.new_hmap()
-	mut c := map[string]int
-	for i in 0..80000 {
-		mut buf := []byte
-		for j in 0..15 {
-			buf << byte(rand.next(int(`z`) - int(`a`)) + `a`)
-		}
-		s := string(buf)
-		b.set(s, i)
-		c[s] = i
-		arr << s
-	}
-	for i in 0..80000 {
-		assert c[arr[i]] == b.get(arr[i]) 
-	}
-}
-
-fn test5() {
-	mut arr := []string
+fn test_4() {
+	arr := generate_strings(15, 100000)
 	mut b := hashmap.new_hmap()
 	for i in 0..100000 {
-		mut buf := []byte
-		for j in 0..15 {
-			buf << byte(rand.next(int(`z`) - int(`a`)) + `a`)
-		}
-		s := string(buf)
-		b.set(s, i)
-		arr << s
+		b.set(arr[i], i)
 	}
 	for i in 0..100000 {
-		// println(i)
 		b.delete(arr[i])
 		assert b.get(arr[i]) == 0 
 	}
 	assert b.size == 0
 }
 
-fn test6() {
-	mut arr := []string
+fn test_5() {
+	arr := generate_strings(15, 100000)
 	mut b := hashmap.new_hmap()
-	for i in 0..100000 {
-		mut buf := []byte
-		for j in 0..15 {
-			buf << byte(rand.next(int(`z`) - int(`a`)) + `a`)
-		}
-		s := string(buf)
-		b.set(s, i)
-		arr << s
-	}
-	for i in 0..100000 {
-		// println(i)
-		b.delete(arr[i])
-		assert b.get(arr[i]) == 0 
-	}
-
 	for i in 0..100000 {
 		b.set(arr[i], i)
 	}
-
+	for i in 0..100000 {
+		b.delete(arr[i])
+		assert b.get(arr[i]) == 0 
+	}
+	for i in 0..100000 {
+		b.set(arr[i], i)
+	}
 	for i in 0..100000 {
 		assert b.get(arr[i]) == i
 	}
-
 	keys1 := b.keys()
 	for i in 0..1000 {
 		assert arr[i] in keys1
 	}
-
 	for i in 0..100000 {
 		b.delete(arr[i])
 	}
-
 	for i in 0..100000 {
 		assert b.get(arr[i]) == 0
 	}
-
 	assert b.size == 0
 }
 
-fn test7() {
-	mut arr := []string
+fn test_6() {
 	mut b := hashmap.new_hmap()
-	mut c := map[string]int
-
+	mut c := btree.new_tree()
 	for _ in 0..10 {
+		arr := generate_strings(5, 10000)
 		for i in 0..10000 {
-			mut buf := []byte
-			for j in 0..5 {
-				buf << byte(rand.next(int(`z`) - int(`a`)) + `a`)
-			}
-			s := string(buf)
-			b.set(s, i)
-			c[s] = i
-			arr << s
+			b.set(arr[i], i)
+			c.set(arr[i], i)
 		}
-
 		for i in 0..10000 {
-			// println(c.size)
 			assert c.size == b.size
-			assert c[arr[i]] == b.get(arr[i])
+			assert c.get(arr[i]) == b.get(arr[i])
 			c.delete(arr[i])
 			b.delete(arr[i])
-
 			mut buf := []byte
 			for j in 0..5 {
 				buf << byte(rand.next(int(`z`) - int(`a`)) + `a`)
 			}
 			s := string(buf)
-
 			c.delete(s)
 			b.delete(s)
 		}
 	}
-	
-	// assert c.keys().len == b.keys().len
+	assert c.keys().len == b.keys().len
 	assert c.size == b.size
 }
 
-fn test8() {
-	
-}
-
-fn rnd_test_get() {
-	mut arr := []string
+fn test_7() {
+	arr := generate_strings(5, 100000)
 	mut b := hashmap.new_hmap()
 	for i in 0..100000 {
-		mut buf := []byte
-		for j in 0..15 {
-			buf << byte(rand.next(int(`z`) - int(`a`)) + `a`)
-		}
-		s := string(buf)
-		b.set(s, i)
-		arr << s
+		b.set(arr[i], i)
 	}
 	for i in 0..100000 {
-		assert i == b.get(arr[i]) 
-	}
-}
-
-fn rnd_test_delete() {
-	mut arr := []string
-	mut b := hashmap.new_hmap()
-	for i in 0..100000 {
-		mut buf := []byte
-		for j in 0..15 {
-			buf << byte(rand.next(int(`z`) - int(`a`)) + `a`)
-		}
-		s := string(buf)
-		b.set(s, i)
-		arr << s
-	}
-	for i in 0..100000 {
-		// println(i)
 		b.delete(arr[i])
-		assert b.get(arr[i]) == 0
+		b.exists(arr[i])
 	}
 	assert b.size == 0 
 }
 
-fn rnd_test_exists() {
-	mut arr := []string
+fn test_8() {
+	arr := generate_strings(5, 240000)
 	mut b := hashmap.new_hmap()
-	for i in 0..100000 {
-		mut buf := []byte
-		for j in 0..5 {
-			buf << byte(rand.next(int(`z`) - int(`a`)) + `a`)
-		}
-		s := string(buf)
-		b.set(s, i)
-		arr << s
-	}
-	for i in 0..100000 {
-		// println(i)
-		b.delete(arr[i])
-		b.exists(arr[i])
-	}
-	// println(b.size)
-	// assert b.size == 0 
-}
-
-fn test_vs_map1() {
-	mut arr := []string
-	mut b := hashmap.new_hmap()
-	mut c := map[string]int
+	mut c := btree.new_tree()
 	for i in 0..240000 {
-		mut buf := []byte
-		for j in 0..4 {
-			buf << byte(rand.next(int(`z`) - int(`a`)) + `a`)
-		}
-		s := string(buf)
-		b.set(s, i)
-		c[s] = i
-		arr << s
+		b.set(arr[i], i)
+		c.set(arr[i], i)
 	}
-
 	mut arr1 := b.keys()
 	arr1.sort()
 	mut arr2 := c.keys()
@@ -263,75 +155,26 @@ fn test_vs_map1() {
 	}
 	assert b.keys().len == c.keys().len
 	assert b.size == c.size
-
 	for i in 0..240000 {
 		b.delete(arr[i])
 		c.delete(arr[i])
 	}
-
 	assert b.keys().len == c.keys().len
 	assert b.size == c.size
 }
 
-fn test_vs_map2() {
-	mut arr := []string
+fn test_9() {
+	arr := generate_strings(5, 4000)
 	mut b := hashmap.new_hmap()
-	mut c := map[string]int
-
-	for _ in 0..10 {
-		for i in 0..10000 {
-			mut buf := []byte
-			for j in 0..5 {
-				buf << byte(rand.next(int(`z`) - int(`a`)) + `a`)
-			}
-			s := string(buf)
-			b.set(s, i)
-			c[s] = i
-			arr << s
-		}
-
-		for i in 0..10000 {
-			assert c.size == b.size
-			assert c[arr[i]] == b.get(arr[i])
-			c.delete(arr[i])
-			b.delete(arr[i])
-
-			mut buf := []byte
-			for j in 0..5 {
-				buf << byte(rand.next(int(`z`) - int(`a`)) + `a`)
-			}
-			s := string(buf)
-
-			c.delete(s)
-			b.delete(s)
-		}
-	}
-	
-	assert c.keys().len == b.keys().len
-	assert c.size == b.size
-}
-
-fn test_vs_map3() {
-	mut arr := []string
-	mut b := hashmap.new_hmap()
-	mut c := map[string]int
+	mut c := btree.new_tree()
 	for i in 0..4000 {
-		mut buf := []byte
-		for j in 0..4 {
-			buf << byte(rand.next(int(`z`) - int(`a`)) + `a`)
-		}
-		
-		s := string(buf)
-
-		b.set(s, i)
-		c[s] = i
-		arr << s
+		b.set(arr[i], i)
+		c.set(arr[i], i)
 	}
-
 	for i in 0..4000 {
 		assert c.keys().len == b.keys().len
 		assert c.size == b.size
-		assert c[arr[i]] == b.get(arr[i])
+		assert c.get(arr[i]) == b.get(arr[i])
 		c.delete(arr[i])
 		b.delete(arr[i])
 	}
@@ -339,7 +182,7 @@ fn test_vs_map3() {
 	assert c.size == b.size
 }
 
-fn general_test1() {
+fn test_10() {
 	mut m := hashmap.new_hmap()
 	assert m.size == 0
 	m.set('hi', 80)
@@ -360,7 +203,7 @@ fn general_test1() {
 	assert m.keys().len == 1
 }
 
-fn general_test2() {
+fn test_11() {
 	mut m := hashmap.new_hmap()
 	m.set('hi', 12)
 	m.delete('hi')
@@ -380,7 +223,7 @@ fn general_test2() {
 	assert m.get('hi') == 2
 }
 
-fn test_large_map() {
+fn test_12() {
 	mut nums := hashmap.new_hmap()
 	N := 30 * 1000
 	for i := 0; i < N; i++ {
@@ -394,7 +237,7 @@ fn test_large_map() {
 	assert nums.get('1000000') == 0
 }
 
-fn test_delete() {
+fn test_13() {
 	mut m := hashmap.new_hmap()
 	m.set('one', 1)
 	m.set('two', 2)
@@ -409,8 +252,7 @@ fn test_delete() {
 	assert m.size == 0
 }	
 
-
-fn test_exists() {
+fn test_14() {
 	mut m := hashmap.new_hmap()
 	m.set('one', 1)
 	m.set('two', 2)
@@ -440,49 +282,19 @@ fn test_exists() {
 	assert m.size == 0
 }
 
-
 fn main() {
-	test1()
-	test2()
-	test3()
-	test4()
-	test5()
-	test6()
-	test7()
-	rnd_test_get()
-	rnd_test_delete()
-	general_test1()
-	general_test2()
-	test_large_map()
-	test_delete()
-	test_exists()
-	rnd_test_exists()
-	test_vs_map1()
-	test_vs_map2()
-	test_vs_map3()
-	// println(-1 & 1)
-	// test3()
-	// mut m := hashmap.new_hmap()
-	// m.set("hej", 1)
-	// m.delete("hej")
-	// a := m.keys()
-	// println(a.data[0])
-	// m.set("2", 2)
-	// println(m.get("2"))
-	// m.set("2", 1)
-
-
-	// // m.set("1", 1)
-	// // println(m.get("1"))
-	// // mut i := 1
-
-	// m.clear()
-	// println(m.get("4"))
-	// println(m.get("2"))
-	// probe_count := 1
-	// probe_hash := (u64(hash) & 0xFFFFFFFFFFFFFFF) | (u64(1) << 60)
-	// probe_count_a := probe_hash >> 60
-	// println(probe_hash)
-	// // println(hash)
-	// // println(probe_count_a)
+	test_1()
+	test_2()
+	test_3()
+	test_4()
+	test_5()
+	test_6()
+	test_7()
+	test_8()
+	test_9()
+	test_10()
+	test_11()
+	test_12()
+	test_13()
+	test_14()
 }
