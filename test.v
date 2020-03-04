@@ -1,6 +1,7 @@
 import hashmap
 import btree
 import rand
+import time
 
 fn generate_strings(len, amount int) []string {
 	mut arr := []string
@@ -283,6 +284,7 @@ fn test_14() {
 }
 
 fn main() {
+	rand.seed(time.now().unix)
 	test_1()
 	test_2()
 	test_3()
