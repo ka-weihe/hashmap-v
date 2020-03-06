@@ -17,7 +17,7 @@ const (
 	// Initial max load-factor
 	init_max_load_factor = 0.8
 	// min load-factor
-	min_load_factor = 0.4
+	min_load_factor = 0.3
 	// Initial range cap
 	init_cap = init_capicity - 2
 	// Bitmask to select all the hashbits
