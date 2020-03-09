@@ -21,7 +21,7 @@ const (
 	// Initial range cap
 	init_cap = init_capicity - 2
 	// Number of extra metas allocated for probe overflow
-	init_extra_metas = 16 //* sizeof(Kv)
+	init_extra_metas = 8 //* sizeof(Kv)
 	// Bitmask to select all the hashbits
 	hash_mask = u32(0x00FFFFFF)
 	// Used for incrementing the probe-count
@@ -157,21 +157,18 @@ pub fn (h mut Hashmap) set(key string, value int) {
 		index += 2
 		meta += probe_inc
 	}
-	// if ((meta >> hashbits)) > 10 {
-	// 	println((meta >> hashbits) << 1)
-	// }
-	
 	if ((meta >> hashbits) << 1) == h.extra_metas {
 		// Should almost never happen
-		// if h.extra_metas == 255 {
-		// 	h.expand()
-		// 	h.set(kv.key, kv.value)
-		// 	return
-		// }
+		if h.extra_metas == 510 {
+			h.expand()
+			h.set(kv.key, kv.value)
+			return
+		}
 		h.extra_metas += 8
-		h.metas = &u32(realloc(h.metas, sizeof(u32) * (h.cap + 2) + h.extra_metas * sizeof(u32)))
-		// ptr := &h.metas 
-		C.memset(&h.metas[(h.cap + 2 + h.extra_metas - 8)], 0, 8 * sizeof(u32))
+		meta_num := u32(h.extra_metas) + h.cap + 2
+		meta_bytes := sizeof(u32) * meta_num
+		h.metas = &u32(realloc(h.metas, meta_bytes))
+		C.memset(h.metas + meta_num - 8, 0, 8 * sizeof(u32))
 	}	
 	h.metas[index] = meta
 	h.metas[index + 1] = kv_index
@@ -208,8 +205,9 @@ fn (h mut Hashmap) shrink() {
 }
 
 fn (h mut Hashmap) rehash() {
-	h.metas = &u32(realloc(h.metas, sizeof(u32) * (h.cap + 2) + h.extra_metas * sizeof(u32)))
-	C.memset(h.metas, 0, sizeof(u32) * (h.cap + 2) + h.extra_metas * sizeof(u32))
+	mem_size := sizeof(u32) * (h.cap + 2 + h.extra_metas)
+	h.metas = &u32(realloc(h.metas, mem_size))
+	C.memset(h.metas, 0, mem_size)
 	for i := u32(0); i < h.key_values.size; i++ {
 		if h.key_values.data[i].key.str == 0 {
 			continue
@@ -241,23 +239,23 @@ fn (h mut Hashmap) rehash() {
 		}
 		if ((meta >> hashbits) << 1) == h.extra_metas {
 			// Should almost never happen
-			// if h.extra_metas == 255 {
-			// 	h.expand()
-			// 	h.set(kv.key, kv.value)
-			// 	return
-			// }
+			if h.extra_metas == 510 {
+				h.expand()
+				return
+			}
 			h.extra_metas += 8
-			h.metas = &u32(realloc(h.metas, sizeof(u32) * (h.cap + 2) + h.extra_metas * sizeof(u32)))
-			// ptr := &h.metas 
-			C.memset(&h.metas[(h.cap + 2 + h.extra_metas - 8)], 0, 8 * sizeof(u32))
-		}	
+			meta_num := u32(h.extra_metas) + h.cap + 2
+			meta_bytes := sizeof(u32) * meta_num
+			h.metas = &u32(realloc(h.metas, meta_bytes))
+			C.memset(h.metas + meta_num - 8, 0, 8 * sizeof(u32))
+		}
 		h.metas[index] = meta
 		h.metas[index + 1] = kv_index
 	}
 }
 
 fn (h mut Hashmap) cached_rehash(old_cap u32) {
-	mut new_meta := &u32(vcalloc(sizeof(u32) * (h.cap + 2) + h.extra_metas * sizeof(u32)))
+	mut new_meta := &u32(vcalloc(sizeof(u32) * (h.cap + 2 + h.extra_metas)))
 	for i := 0; i <= old_cap + h.extra_metas; i += 2 {
 		if h.metas[i] == 0 {
 			continue
@@ -290,16 +288,17 @@ fn (h mut Hashmap) cached_rehash(old_cap u32) {
 		}
 		if ((meta >> hashbits) << 1) == h.extra_metas {
 			// Should almost never happen
-			// if h.extra_metas == 255 {
-			// 	h.expand()
-			// 	h.set(kv.key, kv.value)
-			// 	return
-			// }
+			if h.extra_metas == 510 {
+				h.expand()
+				free(new_meta)
+				return
+			}
 			h.extra_metas += 8
-			new_meta = &u32(realloc(new_meta, sizeof(u32) * (h.cap + 2) + h.extra_metas * sizeof(u32)))
-			// ptr := &h.metas 
-			C.memset(&new_meta[(h.cap + 2 + h.extra_metas - 8)], 0, 8 * sizeof(u32))
-		}	
+			meta_num := u32(h.extra_metas) + h.cap + 2
+			meta_bytes := sizeof(u32) * meta_num
+			h.metas = &u32(realloc(h.metas, meta_bytes))
+			C.memset(h.metas + meta_num - 8, 0, 8 * sizeof(u32))
+		}
 		new_meta[index] = meta
 		new_meta[index + 1] = kv_index
 	}
