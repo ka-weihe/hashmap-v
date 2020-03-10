@@ -59,7 +59,7 @@ pub fn new_hmap() Hashmap {
 		shift: init_log_capicity
 		window: cached_hashbits
 		key_values: new_dense_array()
-		metas: &u32(calloc(sizeof(u32) * init_capicity))
+		metas: &u32(vcalloc(sizeof(u32) * init_capicity))
 		max_load_factor: init_max_load_factor
 		size: 0
 	}
@@ -235,7 +235,7 @@ fn (h mut Hashmap) rehash() {
 }
 
 fn (h mut Hashmap) cached_rehash(old_cap u32) {
-	mut new_meta := &u32(calloc(sizeof(u32) * (h.cap + 2)))
+	mut new_meta := &u32(vcalloc(sizeof(u32) * (h.cap + 2)))
 	for i := 0; i <= old_cap; i += 2 {
 		if h.metas[i] == 0 {
 			continue
