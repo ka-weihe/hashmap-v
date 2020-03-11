@@ -36,10 +36,10 @@ this you should have a basic understanding of how it works:
 	metas = [meta, 0, meta, 0, meta, meta, meta, 0, ...]
 	key_values = [kv, kv, kv, kv, kv, ...]
 
-4. Power of two. TODO: explain
-5. Extra metas. TODO: explain
-6. Cached rehashing TODO: explain
-7. Load-factor. TODO: explain
+4.	Power of two. TODO: explain
+5.	Extra metas. TODO: explain
+6.	Cached rehashing TODO: explain
+7.	Load-factor. TODO: explain
 */
 
 const (
