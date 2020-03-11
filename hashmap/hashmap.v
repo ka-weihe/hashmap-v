@@ -12,29 +12,29 @@ Here is a short explanation of each property. After reading
 this you should have a basic understanding of how it works:
 
 1.	Hash-function (Wyhash). Wyhash is the fastest hash-function
-		passing SMHasher, so it was an easy choice.
+	passing SMHasher, so it was an easy choice.
 
 2.	Open addressing (Robin Hood Hashing). With this method a hash 
-		collision is resolved by probing. As opposed to linear probing,
-		Robin Hood hashing has simple but clever twist: As new keys are 
-		inserted, old keys are shifted around in a way such that all keys 
-		stay reasonably close to the slot they originally hash to.
+	collision is resolved by probing. As opposed to linear probing,
+	Robin Hood hashing has simple but clever twist: As new keys are 
+	inserted, old keys are shifted around in a way such that all keys 
+	stay reasonably close to the slot they originally hash to.
 
 3.	Memory layout. Key-value pairs are stored in a `DenseArray`,
-		with an average of rougly 6.25% unused memory, as opposed to
-		most other dynamic array implementation with a growth factor
-		of 1.5 or 2. The key-values keep their index in the array -
-		they are not probed. Instead, this implementation uses another
-		array "metas" storing "metas" (meta-data). Each Key-value has
-		a corresponding meta. A meta stores a reference to its key-value, and
-		its index in "metas" is determined by the hash of the key and probing.
-		A meta also stores bits from the hash (for faster rehashing etc.)
-		and how far away it is from the index it was originally hashed to 
-		(probe count).  
+	with an average of rougly 6.25% unused memory, as opposed to
+	most other dynamic array implementation with a growth factor
+	of 1.5 or 2. The key-values keep their index in the array -
+	they are not probed. Instead, this implementation uses another
+	array "metas" storing "metas" (meta-data). Each Key-value has
+	a corresponding meta. A meta stores a reference to its key-value, and
+	its index in "metas" is determined by the hash of the key and probing.
+	A meta also stores bits from the hash (for faster rehashing etc.)
+	and how far away it is from the index it was originally hashed to 
+	(probe count).  
 
-		meta (64 bit) = probe_count (8 bits) | hashbits (24 bits) | kv_index (32 bit)
-		metas = [meta, 0, meta, 0, meta, meta, meta, 0, ...]
-		key_values = [kv, kv, kv, kv, kv, ...]
+	meta (64 bit) = probe_count (8 bits) | hashbits (24 bits) | kv_index (32 bit)
+	metas = [meta, 0, meta, 0, meta, meta, meta, 0, ...]
+	key_values = [kv, kv, kv, kv, kv, ...]
 
 4. Power of two. TODO: explain
 5. Extra metas. TODO: explain
