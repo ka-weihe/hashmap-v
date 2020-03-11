@@ -154,12 +154,16 @@ pub fn (h mut Hashmap) set(key string, value int) {
 		index += 2
 		meta += probe_inc
 	}
-	probe := (meta >> hashbits) - 1
+	probe := (meta >> hashbits)
 	if (probe << 1) == h.extra_bytes {
 		h.extra_bytes += 4
 		h.metas = &u32(realloc(h.metas, sizeof(u32) * (h.cap + 2 + h.extra_bytes)))
-		C.memset(&h.metas[h.cap + 2 +  h.extra_bytes - 4], 0, sizeof(u32) * 4)
-	}   
+		array_size := (h.cap + 2 + h.extra_bytes)
+		h.metas[array_size - 1] = 0
+		h.metas[array_size - 2] = 0
+		h.metas[array_size - 3] = 0
+		h.metas[array_size - 4] = 0
+	}  
 	// Should almost never happen
 	if (meta & max_probe) == max_probe {
 		h.expand()
@@ -173,7 +177,7 @@ pub fn (h mut Hashmap) set(key string, value int) {
 
 // Doubles the size of the hashmap
 fn (h mut Hashmap) expand() {
-	// old_cap := h.cap
+	old_cap := h.cap
 	h.cap = ((h.cap + 2)<<1) - 2
 	// Check if any hashbits are left
 	if h.window == 0 {
@@ -182,8 +186,8 @@ fn (h mut Hashmap) expand() {
 		h.window = cached_hashbits
 	}
 	else {
-		h.rehash()
-		// h.cached_rehash(old_cap)
+		// h.rehash()
+		h.cached_rehash(old_cap)
 	}
 	h.window--
 }
@@ -232,12 +236,16 @@ fn (h mut Hashmap) rehash() {
 			index += 2
 			meta += probe_inc
 		}
-		probe := (meta >> hashbits) - 1
+		probe := (meta >> hashbits)
 		if (probe << 1) == h.extra_bytes {
 			h.extra_bytes += 4
 			h.metas = &u32(realloc(h.metas, sizeof(u32) * (h.cap + 2 + h.extra_bytes)))
-			C.memset(&h.metas[h.cap + 2 +  h.extra_bytes - 4], 0, sizeof(u32) * 4)
-		}  
+			array_size := (h.cap + 2 + h.extra_bytes)
+			h.metas[array_size - 1] = 0
+			h.metas[array_size - 2] = 0
+			h.metas[array_size - 3] = 0
+			h.metas[array_size - 4] = 0
+		} 
 		// Should almost never happen
 		if (meta & max_probe) == max_probe {
 			h.expand()
@@ -251,7 +259,8 @@ fn (h mut Hashmap) rehash() {
 
 fn (h mut Hashmap) cached_rehash(old_cap u32) {
 	mut new_meta := &u32(vcalloc(sizeof(u32) * (h.cap + 2 + h.extra_bytes)))
-	for i := 0; i <= old_cap + h.extra_bytes; i += 2 {
+	old_extra_bytes := h.extra_bytes
+	for i := 0; i <= old_cap + old_extra_bytes; i += 2 {
 		if h.metas[i] == 0 {
 			continue
 		}
@@ -260,6 +269,7 @@ fn (h mut Hashmap) cached_rehash(old_cap u32) {
 		old_index := (i - old_probe_count) & (h.cap >> 1)
 		mut index := u64(old_index) | (old_meta << h.shift) & h.cap
 		mut meta := (old_meta & hash_mask) | probe_inc
+
 		// While probe count is less
 		for meta < new_meta[index] {
 			index += 2
@@ -283,10 +293,14 @@ fn (h mut Hashmap) cached_rehash(old_cap u32) {
 			meta += probe_inc
 		}
 		probe := (meta >> hashbits)
-		if (probe << 1) >= h.extra_bytes {
+		if (probe << 1) == h.extra_bytes {
 			h.extra_bytes += 4
 			new_meta = &u32(realloc(new_meta, sizeof(u32) * (h.cap + 2 + h.extra_bytes)))
-			C.memset(&new_meta[h.cap + 2 +  h.extra_bytes - 4], 0, sizeof(u32) * 4)
+			array_size := (h.cap + 2 + h.extra_bytes)
+			new_meta[array_size - 1] = 0
+			new_meta[array_size - 2] = 0
+			new_meta[array_size - 3] = 0
+			new_meta[array_size - 4] = 0
 		} 
 		// Should almost never happen
 		if (meta & max_probe) == max_probe {
