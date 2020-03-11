@@ -5,6 +5,43 @@ module hashmap
 
 import hash.wyhash
 
+/*
+This is a very fast hashmap implementation. This hashmap
+has several properties that in combination makes it very fast.
+Here is a short explanation of each property. After reading
+this you should have a basic understanding of how it works:
+
+1.	Hash-function (Wyhash). Wyhash is the fastest hash-function
+		passing SMHasher, so it was an easy choice.
+
+2.	Open addressing (Robin Hood Hashing). With this method a hash 
+		collision is resolved by probing. As opposed to linear probing,
+		Robin Hood hashing has simple but clever twist: As new keys are 
+		inserted, old keys are shifted around in a way such that all keys 
+		stay reasonably close to the slot they originally hash to.
+
+3.	Memory layout. Key-value pairs are stored in a `DenseArray`,
+		with an average of rougly 6.25% unused memory, as opposed to
+		most other dynamic array implementation with a growth factor
+		of 1.5 or 2. The key-values keep their index in the array -
+		they are not probed. Instead, this implementation uses another
+		array "metas" storing "metas" (meta-data). Each Key-value has
+		a corresponding meta. A meta stores a reference to its key-value, and
+		its index in "metas" is determined by the hash of the key and probing.
+		A meta also stores bits from the hash (for faster rehashing etc.)
+		and how far away it is from the index it was originally hashed to 
+		(probe count).  
+
+		meta (64 bit) = probe_count (8 bits) | hashbits (24 bits) | kv_index (32 bit)
+		metas = [meta, 0, meta, 0, meta, meta, meta, 0, ...]
+		key_values = [kv, kv, kv, kv, kv, ...]
+
+4. Power of two. TODO: explain
+5. Extra metas. TODO: explain
+6. Cached rehashing TODO: explain
+7. Load-factor. TODO: explain
+*/
+
 const (
 	// Number of bits from the hash stored for each entry
 	hashbits = 24
@@ -21,7 +58,7 @@ const (
 	// Initial range cap
 	init_cap = init_capicity - 2
 	// Used for incrementing `extra_metas` when max
-	// probe count is too high to avoid overflow
+	// probe count is too high, to avoid overflow
 	extra_metas_inc = 4
 	// Bitmask to select all the hashbits
 	hash_mask = u32(0x00FFFFFF)
@@ -268,7 +305,6 @@ fn (h mut Hashmap) cached_rehash(old_cap u32) {
 		old_index := (i - old_probe_count) & (h.cap >> 1)
 		mut index := u64(old_index) | (old_meta << h.shift) & h.cap
 		mut meta := (old_meta & hash_mask) | probe_inc
-
 		// While probe count is less
 		for meta < new_meta[index] {
 			index += 2
