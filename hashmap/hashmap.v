@@ -154,7 +154,7 @@ pub fn (h mut Hashmap) set(key string, value int) {
 		index += 2
 		meta += probe_inc
 	}
-	probe := (meta >> hashbits)
+	probe := (meta >> hashbits) - 1
 	if (probe << 1) == h.extra_bytes {
 		h.extra_bytes += 4
 		mem_size := (h.cap + 2 + h.extra_bytes)
@@ -233,7 +233,7 @@ fn (h mut Hashmap) rehash() {
 			index += 2
 			meta += probe_inc
 		}
-		probe := (meta >> hashbits)
+		probe := (meta >> hashbits) - 1
 		if (probe << 1) == h.extra_bytes {
 			h.extra_bytes += 4
 			mem_size := (h.cap + 2 + h.extra_bytes)
@@ -286,7 +286,7 @@ fn (h mut Hashmap) cached_rehash(old_cap u32) {
 			index += 2
 			meta += probe_inc
 		}
-		probe := (meta >> hashbits)
+		probe := (meta >> hashbits) - 1
 		if (probe << 1) == h.extra_bytes {
 			h.extra_bytes += 4
 			mem_size := (h.cap + 2 + h.extra_bytes)
