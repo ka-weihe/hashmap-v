@@ -157,12 +157,9 @@ pub fn (h mut Hashmap) set(key string, value int) {
 	probe := (meta >> hashbits)
 	if (probe << 1) == h.extra_bytes {
 		h.extra_bytes += 4
-		h.metas = &u32(realloc(h.metas, sizeof(u32) * (h.cap + 2 + h.extra_bytes)))
-		array_size := (h.cap + 2 + h.extra_bytes)
-		h.metas[array_size - 1] = 0
-		h.metas[array_size - 2] = 0
-		h.metas[array_size - 3] = 0
-		h.metas[array_size - 4] = 0
+		mem_size := (h.cap + 2 + h.extra_bytes)
+		h.metas = &u32(realloc(h.metas, sizeof(u32) * mem_size))
+		memset(h.metas + mem_size - 4, 0, sizeof(u32) * 4)
 	}  
 	// Should almost never happen
 	if (meta & max_probe) == max_probe {
@@ -239,12 +236,9 @@ fn (h mut Hashmap) rehash() {
 		probe := (meta >> hashbits)
 		if (probe << 1) == h.extra_bytes {
 			h.extra_bytes += 4
-			h.metas = &u32(realloc(h.metas, sizeof(u32) * (h.cap + 2 + h.extra_bytes)))
-			array_size := (h.cap + 2 + h.extra_bytes)
-			h.metas[array_size - 1] = 0
-			h.metas[array_size - 2] = 0
-			h.metas[array_size - 3] = 0
-			h.metas[array_size - 4] = 0
+			mem_size := (h.cap + 2 + h.extra_bytes)
+			h.metas = &u32(realloc(h.metas, sizeof(u32) * mem_size))
+			memset(h.metas + mem_size - 4, 0, sizeof(u32) * 4)
 		} 
 		// Should almost never happen
 		if (meta & max_probe) == max_probe {
@@ -295,12 +289,9 @@ fn (h mut Hashmap) cached_rehash(old_cap u32) {
 		probe := (meta >> hashbits)
 		if (probe << 1) == h.extra_bytes {
 			h.extra_bytes += 4
-			new_meta = &u32(realloc(new_meta, sizeof(u32) * (h.cap + 2 + h.extra_bytes)))
-			array_size := (h.cap + 2 + h.extra_bytes)
-			new_meta[array_size - 1] = 0
-			new_meta[array_size - 2] = 0
-			new_meta[array_size - 3] = 0
-			new_meta[array_size - 4] = 0
+			mem_size := (h.cap + 2 + h.extra_bytes)
+			new_meta = &u32(realloc(new_meta, sizeof(u32) * mem_size))
+			memset(new_meta + mem_size - 4, 0, sizeof(u32) * 4)
 		} 
 		// Should almost never happen
 		if (meta & max_probe) == max_probe {
