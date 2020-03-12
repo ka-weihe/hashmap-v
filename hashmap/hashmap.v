@@ -225,7 +225,6 @@ fn (h mut Hashmap) expand() {
 		h.window = cached_hashbits
 	}
 	else {
-		// h.rehash()
 		h.cached_rehash(old_cap)
 	}
 	h.window--
