@@ -6,10 +6,10 @@ module hashmap
 import hash.wyhash
 
 /*
-This is a very fast hashmap implementation. This hashmap
-has several properties that in combination makes it very fast.
-Here is a short explanation of each property. After reading
-this you should have a basic understanding of how it works:
+This is a very fast hashmap implementation. It has several properties 
+that in combination makes it very fast. Here is a short explanation of
+each property. After reading this you should have a basic understanding
+of how it works:
 
 1.	Hash-function (Wyhash). Wyhash is the fastest hash-function
 	passing SMHasher, so it was an easy choice.
@@ -40,6 +40,7 @@ this you should have a basic understanding of how it works:
 5.	Extra metas. TODO: explain
 6.	Cached rehashing TODO: explain
 7.	Load-factor. TODO: explain
+6.	Deletion. TODO: explain
 */
 
 const (
