@@ -6,41 +6,48 @@ module hashmap
 import hash.wyhash
 
 /*
-This is a very fast hashmap implementation. It has several properties 
-that in combination makes it very fast. Here is a short explanation of
+This is a very fast hashmap implementation. It has several properties that in combination makes it very fast. Here is a short explanation of
 each property. After reading this you should have a basic understanding
 of how it works:
 
-1.	Hash-function (Wyhash). Wyhash is the fastest hash-function
-	passing SMHasher, so it was an easy choice.
+Hash-function (Wyhash). Wyhash is the fastest hash-function
+passing SMHasher, so it was an easy choice.
 
-2.	Open addressing (Robin Hood Hashing). With this method a hash 
-	collision is resolved by probing. As opposed to linear probing,
-	Robin Hood hashing has simple but clever twist: As new keys are 
-	inserted, old keys are shifted around in a way such that all keys 
-	stay reasonably close to the slot they originally hash to.
+Open addressing (Robin Hood Hashing). With this method a hash 
+collision is resolved by probing. As opposed to linear probing,
+Robin Hood hashing has a simple but clever twist: As new keys are 
+inserted, old keys are shifted around in a way such that all keys 
+stay reasonably close to the slot they originally hash to.
 
-3.	Memory layout. Key-value pairs are stored in a `DenseArray`,
-	with an average of rougly 6.25% unused memory, as opposed to
-	most other dynamic array implementation with a growth factor
-	of 1.5 or 2. The key-values keep their index in the array -
-	they are not probed. Instead, this implementation uses another
-	array "metas" storing "metas" (meta-data). Each Key-value has
-	a corresponding meta. A meta stores a reference to its key-value, and
-	its index in "metas" is determined by the hash of the key and probing.
-	A meta also stores bits from the hash (for faster rehashing etc.)
-	and how far away it is from the index it was originally hashed to 
-	(probe count).  
+Memory layout. Key-value pairs are stored in a `DenseArr`,
+with an average of roughly 6.25% unused memory, as opposed to
+most other dynamic array implementation with a growth factor
+of 1.5 or 2. The key-values keep their index in the array -
+they are not probed. Instead, this implementation uses another
+array "metas" storing "metas" (meta-data). Each Key-value has
+a corresponding meta. A meta stores a reference to its key-value, and
+its index in "metas" is determined by the hash of the key and probing.
+A meta also stores bits from the hash (for faster rehashing etc.)
+and how far away it is from the index it was originally hashed to 
+(probe_count). probe_count is 0 if empty, 1 if not probed, 2 if probed by 1.
 
-	meta (64 bit) = probe_count (8 bits) | hashbits (24 bits) | kv_index (32 bit)
-	metas = [meta, 0, meta, 0, meta, meta, meta, 0, ...]
-	key_values = [kv, kv, kv, kv, kv, ...]
+meta (64 bit) =  kv_index (32 bit) | probe_count (8 bits) | hashbits (24 bits)
+metas = [meta, 0, meta, 0, meta, meta, meta, 0, ...]
+key_values = [kv, kv, kv, kv, kv, ...]
 
-4.	Power of two. TODO: explain
-5.	Extra metas. TODO: explain
-6.	Cached rehashing TODO: explain
-7.	Load-factor. TODO: explain
-6.	Deletion. TODO: explain
+Power of two size array. The size of metas is a power of two. This makes it possible to find a bucket from a hash code you can use hash & (SIZE -1) instead of abs(hash) % SIZE. Modulo is extremely expensive so using '&' is a big performance improvement. The general
+concern with this is that you only use the lower bits of the hash
+and can cause many collisions. This is solved by using very good
+hash-function. 
+
+Extra metas. The hashmap keeps track of the highest probe_count.
+The trick is to allocate extra metas > max(probe_count), so you never
+have to do any bounds checking because the extra metas ensures that an element will never go beyond index the last index. 
+
+Cached rehashing. When the size of the map exceeds the max_load_factor
+the size of metas is doubled and all the elements need to be "rehashed"
+to find the index in the new array. Instead of rehashing complete, it
+simply uses the hashbits stored in the meta.  
 */
 
 const (
@@ -78,7 +85,7 @@ mut:
 	// Used for right-shifting out used hashbits
 	shift           byte
 	// Pointer to Key-value memory
-	key_values      DenseArray
+	key_values      DenseArr
 	// Pointer to meta-data
 	metas           &u32
 	// Measure that decides when to increase the capacity
@@ -102,7 +109,7 @@ pub fn new_hmap() Hashmap {
 		cap: init_cap
 		shift: init_log_capicity
 		window: cached_hashbits
-		key_values: new_dense_array()
+		key_values: new_dense_arr()
 		metas: &u32(vcalloc(sizeof(u32) * (init_capicity + extra_metas_inc)))
 		max_load_factor: init_max_load_factor
 		extra_metas: extra_metas_inc
@@ -111,7 +118,7 @@ pub fn new_hmap() Hashmap {
 }
 
 // Dynamic array with very low growth factor
-struct DenseArray {
+struct DenseArr {
 mut:
 	data &Kv
 	cap  u32
@@ -119,9 +126,9 @@ mut:
 }
 
 [inline]
-fn new_dense_array() DenseArray {
+fn new_dense_arr() DenseArr {
 	unsafe {
-		return DenseArray {
+		return DenseArr {
 			data: &Kv(malloc(8 * sizeof(Kv)))
 			cap: 8
 			size: 0
@@ -132,7 +139,7 @@ fn new_dense_array() DenseArray {
 // Push element to array and return index
 // The growth-factor is roughly 12.5 `(x + (x >> 3))`
 [inline]
-fn (d mut DenseArray) push(value Kv) u32 {
+fn (d mut DenseArr) push(value Kv) u32 {
 	if d.cap == d.size {
 		d.cap += d.cap >> 3
 		d.data = &Kv(realloc(d.data, sizeof(Kv) * d.cap))
@@ -145,16 +152,18 @@ fn (d mut DenseArray) push(value Kv) u32 {
 
 // Move all zeros to the end of the array
 // and resize array
-fn (d mut DenseArray) zeros_to_end() {
+fn (d mut DenseArr) zeros_to_end() {
 	mut count := u32(0)
 	for i in 0..d.size {
 		if d.data[i].key.str != 0 {
+			tmp := d.data[count]
 			d.data[count] = d.data[i]
+			d.data[i] = tmp
 			count++
 		}
 	}
 	d.size = count
-	d.cap = if count < 8 {8} else {count}
+	d.cap = if count <= 8 {8} else {count}
 	d.data = &Kv(realloc(d.data, sizeof(Kv) * d.cap))
 }
 
@@ -348,6 +357,7 @@ fn (h mut Hashmap) cached_rehash(old_cap u32) {
 	h.metas = new_meta
 }
 
+[inline]
 pub fn (h Hashmap) get(key string) int {
 	hash := wyhash.wyhash_c(key.str, u64(key.len), 0)
 	mut index := hash & h.cap
@@ -413,7 +423,7 @@ pub fn (h mut Hashmap) delete(key string) {
 			}
 			h.metas[old_index] = 0
 			h.size--
-			if h.cap == 14 {return}
+			if h.cap == 30 {return}
 			if (f32(h.size << 1) / f32(h.cap)) < min_load_factor {
 				h.shrink()
 			}
