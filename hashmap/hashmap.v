@@ -5,6 +5,8 @@ module hashmap
 
 import hash.wyhash
 
+fn C.strcmp(byteptr, byteptr) int
+
 /*
 This is a very fast hashmap implementation. It has several properties that in 
 combination makes it very fast. Here is a short explanation of each property. 
@@ -143,7 +145,7 @@ fn new_dense_arr() DenseArr {
 fn (d mut DenseArr) push(key string, value int) u32 {
 	if d.cap == d.size {
 		d.cap += d.cap >> 3
-		d.data = &Kv(realloc(d.data, sizeof(Kv) * d.cap))
+		d.data = &Kv(C.realloc(d.data, sizeof(Kv) * d.cap))
 	}
 	push_index := d.size
 	d.data[push_index].key = key
@@ -153,7 +155,7 @@ fn (d mut DenseArr) push(key string, value int) u32 {
 }
 
 fn (d mut DenseArr) delete(m mut Hashmap, index u32) {
-	memset(&d.data[index], 0, sizeof(Kv))
+	C.memset(&d.data[index], 0, sizeof(Kv))
 	d.deletes++
 	if d.size <= 32 {return}
 	if d.deletes >= (d.size >> 1) {
@@ -177,7 +179,7 @@ fn (d mut DenseArr) zeros_to_end() {
 	}
 	d.size = count
 	d.cap = if count <= 8 {8} else {count}
-	d.data = &Kv(realloc(d.data, sizeof(Kv) * d.cap))
+	d.data = &Kv(C.realloc(d.data, sizeof(Kv) * d.cap))
 }
 
 [inline]
@@ -221,7 +223,7 @@ fn (h mut Hashmap) meta_greater(i u32, m u32, kvi u32) {
 		// Should almost never happen
 		h.extra_metas += extra_metas_inc
 		mem_size := (h.cap + 2 + h.extra_metas)
-		h.metas = &u32(realloc(h.metas, sizeof(u32) * mem_size))
+		h.metas = &u32(C.realloc(h.metas, sizeof(u32) * mem_size))
 		C.memset(h.metas + mem_size - extra_metas_inc, 0, sizeof(u32) * extra_metas_inc)
 		if probe_count == 252 {
 			panic("Probe overflow")
@@ -241,7 +243,7 @@ pub fn (h mut Hashmap) set(key string, value int) {
 	// While we might have a match
 	for meta == h.metas[index] {
 		kv_index := h.metas[index + 1]
-		if key == h.key_values.data[kv_index].key {
+		if C.strcmp(key.str, h.key_values.data[kv_index].key.str) == 0 {
 			h.key_values.data[kv_index].value = value
 			return
 		}
@@ -256,7 +258,7 @@ pub fn (h mut Hashmap) set(key string, value int) {
 
 fn (h mut Hashmap) rehash() {
 	meta_bytes := sizeof(u32) * (h.cap + 2 + h.extra_metas)
-	h.metas = &u32(realloc(h.metas, meta_bytes))
+	h.metas = &u32(C.realloc(h.metas, meta_bytes))
 	C.memset(h.metas, 0, meta_bytes)
 	for i := u32(0); i < h.key_values.size; i++ {
 		if h.key_values.data[i].key.str == 0 {
@@ -312,7 +314,7 @@ pub fn (h Hashmap) get(key string) int {
 	index, meta = h.meta_less2(index, meta)
 	for meta == h.metas[index] {
 		kv_index := h.metas[index + 1]
-		if key == h.key_values.data[kv_index].key {
+		if C.strcmp(key.str, h.key_values.data[kv_index].key.str) == 0 {
 			return h.key_values.data[kv_index].value
 		}
 		index += 2
@@ -326,7 +328,7 @@ pub fn (h Hashmap) exists(key string) bool {
 	index, meta = h.meta_less2(index, meta)
 	for meta == h.metas[index] {
 		kv_index := h.metas[index + 1]
-		if key == h.key_values.data[kv_index].key {
+		if C.strcmp(key.str, h.key_values.data[kv_index].key.str) == 0 {
 			return true
 		}
 		index += 2
@@ -341,7 +343,7 @@ pub fn (h mut Hashmap) delete(key string) {
 	// Perform backwards shifting
 	for meta == h.metas[index] {
 		kv_index := h.metas[index + 1]
-		if key == h.key_values.data[kv_index].key {
+		if C.strcmp(key.str, h.key_values.data[kv_index].key.str) == 0 {
 			for (h.metas[index + 2] >> hashbits) > 1 {
 				h.metas[index] = h.metas[index + 2] - probe_inc
 				h.metas[index + 1] = h.metas[index + 3]
@@ -371,10 +373,15 @@ pub fn (h Hashmap) keys() []string {
 	return keys
 }
 
-pub fn (h Hashmap) free() {
-	unsafe {
-		free(h.metas)
-		free(h.key_values.data)
+[unsafe_fn]
+pub fn (m Hashmap) free() {
+	free(m.metas)
+	for i := u32(0); i < m.key_values.size; i++ {
+		if m.key_values.data[i].key.str == 0 {
+			continue
+		}
+		m.key_values.data[i].key.free()
 	}
+	free(m.key_values.data)
 }
 
