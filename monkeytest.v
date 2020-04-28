@@ -10,28 +10,14 @@ fn generate_strings(len, amount int) &string {
 		for j in 0..len {
 			buf[j] = byte(rand.next(int(`z`) - int(`a`)) + `a`)
 		}
-		buf[len] = 0
 		arr[i] = string(buf)
 	}
 	return arr
 }
 
 fn test_1() {
-	mut m := hashmap.new_hmap()
-	for i in 1..1000000 {
-		m.set(i.str(), i)
-	}
-	for i in 1..1000000 {
-		m.set(i.str(), i + 1)
-	}
-	for i in 1..1000000 {
-		assert m.get(i.str()) == (i + 1)
-	}
-}
-
-fn test_2() {
-	amount := 100000 - rand.next(50000)
-	amount2 := 100000 - rand.next(50000)
+	amount := 200000 - rand.next(100000)
+	amount2 := 200000 - rand.next(100000)
 	len := 20 - rand.next(6)
 	arr := generate_strings(len, amount)
 	arr2 := generate_strings(len, amount2)
@@ -46,13 +32,17 @@ fn test_2() {
 	for i in 0..amount2 {
 		assert 0 == b.get(arr2[i])
 	}
+	b.free()
 }
 
-fn test_3() {
+fn test_2() {
 	for x in 1..4 {
-		amount := 100000 - rand.next(50000)
+		amount := 120000 - rand.next(70000)
 		arr := generate_strings(x * 5, amount)
 		mut b := hashmap.new_hmap()
+		// b.expand()
+		b.reserve(amount)
+		// println(b.cap)
 		// mut c := btree.new_tree()
 		for i in 0..amount {
 			b.set(arr[i], i)
@@ -62,11 +52,12 @@ fn test_3() {
 		for i in 0..amount {
 			b.get(arr[i]) 
 		}
+		b.free()
 	}	
 }
 
-fn test_4() {
-	amount := 100000 - rand.next(50000)
+fn test_3() {
+	amount := 200000 - rand.next(100000)
 	len := 20 - rand.next(6)
 	arr := generate_strings(len, amount)
 	mut b := hashmap.new_hmap()
@@ -78,9 +69,10 @@ fn test_4() {
 		assert b.get(arr[i]) == 0 
 	}
 	assert b.size == 0
+	b.free()
 }
 
-fn test_5() {
+fn test_4() {
 	amount := 200000 - rand.next(100000)
 	len := 20 - rand.next(6)
 	arr := generate_strings(len, amount)
@@ -114,13 +106,14 @@ fn test_5() {
 		}
 		assert b.size == 0
 	}
+	b.free()
 }
 
-fn test_6() {
+fn test_5() {
 	mut b := hashmap.new_hmap()
 	mut c := btree.new_tree()
 	for _ in 0..10 {
-		amount := 20000 - rand.next(10000)
+		amount := 30000 - rand.next(20000)
 		arr := generate_strings(5, amount)
 		for i in 0..amount {
 			b.set(arr[i], i)
@@ -143,10 +136,11 @@ fn test_6() {
 	}
 	assert c.keys().len == b.keys().len
 	assert c.size == b.size
+	b.free()
 }
 
-fn test_7() {
-	amount := 150000 - rand.next(100000)
+fn test_6() {
+	amount := 180000 - rand.next(130000)
 	arr := generate_strings(5, amount)
 	mut b := hashmap.new_hmap()
 	for i in 0..amount {
@@ -157,10 +151,11 @@ fn test_7() {
 		b.exists(arr[i])
 	}
 	assert b.size == 0 
+	b.free()
 }
 
-fn test_8() {
-	amount := 300000 - rand.next(150000)
+fn test_7() {
+	amount := 400000 - rand.next(150000)
 	arr := generate_strings(5, amount)
 	mut b := hashmap.new_hmap()
 	mut c := btree.new_tree()
@@ -183,9 +178,10 @@ fn test_8() {
 	}
 	assert b.keys().len == c.keys().len
 	assert b.size == c.size
+	b.free()
 }
 
-fn test_9() {
+fn test_8() {
 	amount := rand.next(8000)
 	arr := generate_strings(5, amount)
 	mut b := hashmap.new_hmap()
@@ -203,9 +199,10 @@ fn test_9() {
 	}
 	assert c.keys().len == b.keys().len
 	assert c.size == b.size
+	b.free()
 }
 
-fn test_10() {
+fn test_9() {
 	amount := rand.next(50000)
 	len := 20 - rand.next(6)
 	mut b := hashmap.new_hmap()
@@ -226,20 +223,22 @@ fn test_10() {
 		assert b.size == 0
 		keys.free()
 	}
+	b.free()
 }
 
 fn main() {
-	seed := int(time.ticks())
-	rand.seed(seed)
-	println('$seed.hex() ')
-	test_1()
-	test_2()
-	test_3()
-	test_4()
-	test_5()
-	test_6()
-	test_7()
-	test_8()
-	test_9()
-	test_10()
+	for _ in 0..2 {
+		seed := int(time.ticks())
+		rand.seed(seed)
+		println('$seed.hex()')
+		// test_1()
+		test_2()
+		// test_3()
+		// test_4()
+		// test_5()
+		// test_6()
+		// test_7()
+		// test_8()
+		// test_9()
+	}
 }

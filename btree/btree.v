@@ -23,8 +23,8 @@ const (
 // children.
 struct Bnode {
 mut:
-	keys     [max_length]string
-	values   [max_length]int
+	keys     [11]string
+	values   [11]int
 	children &voidptr
 	size     int
 }
@@ -338,13 +338,13 @@ pub fn (t mut Tree) delete(k string) {
 }
 
 fn (n Bnode) free() {
-	if !isnil(n.children) {
-		for i in 0..n.size + 1 {
-			&Bnode(n.children[i]).free()
-		}
-	}
-	free(n.children)
-	free(n)
+	// if !isnil(n.children) {
+	// 	for i in 0..n.size + 1 {
+	// 		&Bnode(n.children[i]).free()
+	// 	}
+	// }
+	// free(n.children)
+	// free(n)
 }
 
 pub fn (t Tree) free() {
@@ -359,7 +359,7 @@ pub fn (t Tree) free() {
 // starting at `at`. Keys are inserted in order. 
 fn (n Bnode) subkeys(keys mut []string, at int) int {
 	mut position := at
-	if (n.children != 0) {
+	if n.children != 0 {
 		// Traverse children and insert
 		// keys inbetween children
 		for i in 0..n.size {
@@ -384,7 +384,7 @@ fn (n Bnode) subkeys(keys mut []string, at int) int {
 
 pub fn (t Tree) keys() []string {
 	mut keys := [''].repeat(t.size)
-	if (t.root.size == 0) {
+	if t.root.size == 0 {
 		return keys
 	}
 	t.root.subkeys(mut keys, 0)

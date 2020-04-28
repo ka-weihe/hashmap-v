@@ -1,16 +1,15 @@
 #!/bin/sh
-v -cflags -O3 -d no_bounds_checking monkeytest.v
-RED='\033[0;32m'
-ORANGE='\033[0;33m'
+v -cc clang-10 -cflags "-O3 -march=native -fsanitize=memory -fsanitize=undefined" -d no_bounds_checking monkeytest.v -o monkeytest_clang
+v -cc gcc -cflags "-O3 -march=native -fsanitize=address -fsanitize=undefined" -d no_bounds_checking monkeytest.v -o monkeytest_gcc
 for i in $(seq 0 1 5000)
 do
-  echo "${RED}Test: ${i}${ORANGE}"
-  ./monkeytest &
+  ./monkeytest_clang >> result.txt &
   sleep 0.001
-  ./monkeytest &
+  ./monkeytest_gcc >> result.txt &
   sleep 0.001
-  ./monkeytest &
+  ./monkeytest_clang >> result.txt &
   sleep 0.001
-  ./monkeytest
+  ./monkeytest_gcc >> result.txt
   sleep 0.001
 done
+

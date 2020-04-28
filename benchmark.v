@@ -47,10 +47,11 @@ fn hashmap_get_bench(arr []string, repeat int) {
 	for x in arr {
 		b.set(x, 1)
 	}
+	mut a := 0
 	start_time := time.ticks()
 	for _ in 0..repeat {
 		for x in arr {
-			b.get(x)
+			a += b.get(x)
 		}
 	}
 	end_time := time.ticks() - start_time
@@ -122,10 +123,10 @@ fn benchmark_size() {
 		}
 		println(arr.len)
 		// map_set_bench(arr, 1000)
-		// hashmap_set_bench(arr, 1000)
+		// hashmap_set_bench(arr, 10)
 		// btree_set_bench(arr, 1000)
 		// map_get_bench(arr, 1000)
-		hashmap_get_bench(arr, 1000)
+		hashmap_get_bench(arr, 10000)
 		// btree_get_bench(arr, 1000)
 	}
 }

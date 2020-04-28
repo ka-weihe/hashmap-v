@@ -15,7 +15,7 @@ const (
 	// Initial number of buckets in the hashtable
 	init_capicity = 1<<log_init_capicity
 	// Initial load-factor
-	init_load_factor = 0.6
+	init_load_factor = 0.8
 	// Initial range cap
 	init_range_cap = init_capicity - 1
 	// Bitmask to select all the hashbits
@@ -24,6 +24,8 @@ const (
 	probe_inc = u32(0x01000000)
 	// Bitmask for maximum probe count
 	max_probe = u32(0xFF000000)
+	// Extra metas
+	extra_metas = 128
 )
 
 pub struct Hashmap {
@@ -54,8 +56,8 @@ mut:
 }
 
 pub fn new_hmap() Hashmap {
-	probe_hash_bytes := sizeof(u32) * init_capicity
-	key_value_bytes := sizeof(Kv) * init_capicity
+	probe_hash_bytes := sizeof(u32) * (init_capicity + 128)
+	key_value_bytes := sizeof(Kv) * (init_capicity + 128)
 	memory := calloc(key_value_bytes + probe_hash_bytes)
 	return Hashmap{
 		range_cap: init_range_cap
@@ -136,8 +138,8 @@ fn (h mut Hashmap) expand() {
 }
 
 fn (h mut Hashmap) rehash(old_range_cap u32) {
-	probe_hash_bytes := sizeof(u32) * (h.range_cap + 1)
-	key_value_bytes := sizeof(Kv) * (h.range_cap + 1)
+	probe_hash_bytes := sizeof(u32) * (h.range_cap + 1 + 128)
+	key_value_bytes := sizeof(Kv) * (h.range_cap + 1 + 128)
 	memory := calloc(probe_hash_bytes + key_value_bytes)
 	mut new_key_values := &Kv(memory)
 	mut new_probe_hash := &u32(memory + key_value_bytes)
@@ -186,12 +188,12 @@ fn (h mut Hashmap) rehash(old_range_cap u32) {
 }
 
 fn (h mut Hashmap) cached_rehash(old_range_cap u32) {
-	probe_hash_bytes := sizeof(u32) * (h.range_cap + 1)
-	key_value_bytes := sizeof(Kv) * (h.range_cap + 1)
+	probe_hash_bytes := sizeof(u32) * (h.range_cap + 1 + 128)
+	key_value_bytes := sizeof(Kv) * (h.range_cap + 1 + 128)
 	memory := calloc(probe_hash_bytes + key_value_bytes)
 	mut new_probe_hash := &u32(memory + key_value_bytes)
 	mut new_key_values := &Kv(memory)
-	for i in 0 .. (old_range_cap + 1) {
+	for i in 0 .. (old_range_cap + 1 + 128) {
 		if h.probe_hash[i] != 0 {
 			mut kv := h.key_values[i]
 			mut probe_hash := h.probe_hash[i]
